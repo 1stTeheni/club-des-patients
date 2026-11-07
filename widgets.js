@@ -58,17 +58,40 @@
   function candleIndexAt(cv, ev) { const g = cv._geo; if (!g) return -1; const r = cv.getBoundingClientRect(); const x = (ev.clientX - r.left) * g.dpr; const i = Math.floor((x - g.pad) / g.w); return i >= 0 && i < g.n ? i : -1; }
   W.drawCandles = drawCandles;
 
+  /* ---------- les deux règles de la Porte 1 : énoncé unique + code unique (app.js les réutilise) ---------- */
+  W.RULE5 = "Prends l'ouverture de la première des 5 et la clôture de la dernière. D'abord : si la différence, en plus ou en moins, fait moins de 1 % de l'ouverture (moins de 5 F sur 500 F, que ce soit 504 ou 496), c'est partagé. Sinon : clôture au-dessus = les acheteurs ont gagné ; en dessous = les vendeurs.";
+  W.RULE30 = "Le plus haut touché sur les 15 bougies récentes est-il au-dessus du plus haut touché sur les 15 anciennes ? ET le plus bas touché sur les 15 récentes est-il au-dessus du plus bas des 15 anciennes ? Deux fois oui = hausse. Deux fois en dessous = baisse. Sinon = range.";
+  W.METEO_NOTE = "La météo décrit ce qui s'est passé. Elle ne dit jamais « achète ».";
+  const px = v => fr(v, v < 100 ? 2 : 0);
+  const cmp = (b, a) => b > a ? "au-dessus" : b < a ? "en dessous" : "pareil";
+  /* Règle 1 (5 bougies) : d'abord le test « partagé » (|clôture − ouverture| < 1 % de l'ouverture), puis le signe. */
+  W.judge5 = cs => { const l5 = cs.slice(-5); const o = l5[0].o, c = l5[l5.length - 1].c; const diff = c - o; const partage = Math.abs(diff) < 0.01 * o; const who = partage ? "partagé" : diff > 0 ? "acheteurs" : "vendeurs"; return { who, o, c, diff, pct: 100 * diff / o }; };
+  /* Règle 2 (30 bougies) : max des 15 récentes contre max des 15 anciennes, puis min contre min. */
+  W.judge30 = cs => { const b = cs.slice(-15), a = cs.slice(-30, -15); const hiA = Math.max(...a.map(c => c.h)), loA = Math.min(...a.map(c => c.l)), hiB = Math.max(...b.map(c => c.h)), loB = Math.min(...b.map(c => c.l)); const sens = hiB > hiA && loB > loA ? "hausse" : hiB < hiA && loB < loA ? "baisse" : "range"; return { sens, hiA, loA, hiB, loB }; };
+  W.explain5 = J => `Ouverture de la première des 5 : ${px(J.o)}. Clôture de la dernière : ${px(J.c)}. Différence : ${J.diff < 0 ? "−" : ""}${px(Math.abs(J.diff))}, soit ${fr(Math.abs(J.pct), 2)} % de l'ouverture : ${J.who === "partagé" ? "moins de 1 %, donc partagé" : J.diff > 0 ? "clôture au-dessus, donc les acheteurs ont gagné" : "clôture en dessous, donc les vendeurs ont gagné"}.`;
+  W.explain30 = J => `Plus haut des 15 récentes : ${px(J.hiB)}, contre ${px(J.hiA)} pour les 15 anciennes : ${cmp(J.hiB, J.hiA)}. Plus bas des 15 récentes : ${px(J.loB)}, contre ${px(J.loA)} : ${cmp(J.loB, J.loA)}.`;
+  W.hint30 = (J, choice) => {
+    if (!choice || choice === J.sens) return "";
+    let look;
+    if (J.sens === "hausse") look = "le plus haut ET le plus bas des 15 récentes : tous les deux au-dessus, deux fois oui";
+    else if (J.sens === "baisse") look = "le plus haut ET le plus bas des 15 récentes : tous les deux en dessous, deux fois en dessous";
+    else if (choice === "hausse") look = J.hiB > J.hiA ? "le plus bas des 15 récentes : il n'est pas au-dessus" : "le plus haut des 15 récentes : il n'est pas au-dessus";
+    else look = J.hiB < J.hiA ? "le plus bas des 15 récentes : il n'est pas en dessous" : "le plus haut des 15 récentes : il n'est pas en dessous";
+    return `La règle dit ${J.sens} ; toi, tu as vu ${choice} : regarde ${look}.`;
+  };
+
   /* ---------- moussa : curseur pressé ---------- */
   W.moussa = (box, p, done, ctx) => {
-    box.innerHTML = `<p class="mini">Glisse le curseur : c'est le monde au marché. Puis Moussa, pressé, achète et revend tout de suite.</p>
-      <input type="range" id="w_hurry" min="0" max="100" value="100"><div class="row" style="justify-content:space-between"><span class="mini">marché plein</span><span class="mini">marché désert</span></div>
+    box.innerHTML = `<p class="mini">Glisse le curseur : c'est le monde au marché, du matin (plein) au soir (il se vide). Puis Moussa, pressé, achète et revend tout de suite.</p>
+      <input type="range" id="w_hurry" min="0" max="100" value="100"><div class="row" style="justify-content:space-between"><span class="mini">Matin, marché plein</span><span class="mini">Soir, marché qui se vide</span></div>
       <div class="prices"><div class="price bid"><small>Prix acheteur (bid) : Awa te reprend à</small><b id="w_bid">450</b><small>francs</small></div><div class="price ask"><small>Prix vendeur (ask) : Awa te vend à</small><b id="w_ask">500</b><small>francs</small></div></div>
       <div class="spreadbar">Écart (spread) : <span id="w_sp">50</span> francs</div>
       <button class="btn wide" id="w_go">Acheter puis revendre tout de suite</button><div class="loss" id="w_loss"></div>`;
     const h = box.querySelector("#w_hurry"); let moved = false;
-    const upd = () => { const q = +h.value / 100; const ask = Math.round(478 + 22 * q), bid = Math.round(472 - 22 * q); box.querySelector("#w_ask").textContent = ask; box.querySelector("#w_bid").textContent = bid; box.querySelector("#w_sp").textContent = ask - bid; box.querySelector("#w_loss").textContent = ""; moved = true; };
+    /* À droite (soir, le marché se vide) : les prix d'Awa, 500 / 450, écart 50 F. À gauche (matin, marché plein) : 482 / 478, écart 4 F. */
+    const upd = () => { const q = +h.value / 100; const ask = Math.round(482 + 18 * q), bid = Math.round(478 - 28 * q); box.querySelector("#w_ask").textContent = ask; box.querySelector("#w_bid").textContent = bid; box.querySelector("#w_sp").textContent = ask - bid; box.querySelector("#w_loss").textContent = ""; moved = true; };
     h.addEventListener("input", upd);
-    box.querySelector("#w_go").addEventListener("click", () => { const l = +box.querySelector("#w_ask").textContent - +box.querySelector("#w_bid").textContent; box.querySelector("#w_loss").textContent = l <= 6 ? "Marché plein : l'écart est tout petit. Moussa, pressé, perd seulement " + l + " francs." : "Les deux prix n'ont pas bougé. Moussa, pressé, a perdu " + l + " francs : l'écart. Plus le marché est désert, plus l'écart est grand."; done({ moved }); });
+    box.querySelector("#w_go").addEventListener("click", () => { const l = +box.querySelector("#w_ask").textContent - +box.querySelector("#w_bid").textContent; box.querySelector("#w_loss").textContent = l <= 8 ? "Marché plein : l'écart est tout petit, " + l + " F. Moussa, pressé, perd seulement " + l + " francs." : "Les deux prix n'ont pas bougé. Moussa, pressé, a perdu " + l + " francs : l'écart. Plus le marché se vide, plus l'écart est grand."; done({ moved }); });
   };
 
   /* ---------- book : vrai carnet d'ordres ---------- */
@@ -80,7 +103,7 @@
     const row = (x, cls, i) => `<div class="r ${cls}" data-i="${i}"><i style="width:${Math.round(100 * +x[1] / mx)}%"></i><span>${fr(+x[0], 2)}</span><span>${(+x[1]).toFixed(3)} BTC</span></div>`;
     const sp = (+asks[asks.length - 1][0] - +bids[0][0]);
     box.innerHTML = (d.demo ? `<p class="mini warn">Pas de connexion : carnet d'exemple.</p>` : "") + `<div class="book">` + asks.map((x, i) => row(x, "ask", i)).join("") + `<div class="mid">écart : ${fr(sp, 2)} USDT</div>` + bids.map((x, i) => row(x, "bid", asks.length + i)).join("") + `</div>
-      <p class="mini">En rouge, en haut : les vendeurs qui attendent, chacun à son prix (le premier = prix vendeur, ask). En vert, en bas : les acheteurs qui attendent (le premier = prix acheteur, bid). La barre montre combien de Bitcoin attendent à chaque prix.</p>` +
+      <p class="mini">Le vrai carnet d'ordres d'une bourse crypto, en direct. En rouge, en haut : les vendeurs qui attendent, chacun à son prix (le premier = prix vendeur, ask). En vert, en bas : les acheteurs qui attendent (le premier = prix acheteur, bid). La barre montre combien de Bitcoin attendent à chaque prix.</p>` +
       (p.wall ? `<div class="reveal"><b>Où est le mur ?</b> Touche la ligne où attend la plus grosse quantité. Si toutes se ressemblent, l'app te le dira : pas de mur aujourd'hui.</div><div id="w_fb"></div>` : "");
     if (!p.wall) { done({}); return; }
     box.querySelectorAll(".book .r").forEach(r => r.addEventListener("click", () => {
@@ -97,8 +120,8 @@
       <div class="row"><button class="btn" id="w_buy">Un acheteur pressé arrive</button><button class="btn ghost" id="w_sell">Un vendeur pressé arrive</button><button class="btn ghost" id="w_calm">Personne n'est pressé</button></div>
       <div id="w_log"></div>`;
     const show = (msg, cls) => { log.unshift(`<div class="reveal ${cls}">${msg}</div>`); box.querySelector("#w_log").innerHTML = log.slice(0, 4).join(""); box.querySelector("#w_price").textContent = fr(price); n++; if (n >= 3) done({ n }); };
-    box.querySelector("#w_buy").addEventListener("click", () => { price += 10; show(`L'acheteur pressé ne veut pas attendre. Il prend au prix du vendeur. Le prix monte à ${fr(price)} ${unit}.`, "ok"); });
-    box.querySelector("#w_sell").addEventListener("click", () => { price -= 10; show(`Le vendeur pressé ne veut pas attendre. Il accepte le prix de l'acheteur. Le prix descend à ${fr(price)} ${unit}.`, "ko"); });
+    box.querySelector("#w_buy").addEventListener("click", () => { price += 10; show(`L'acheteur pressé ne veut pas attendre. Il accepte le prix vendeur. Le prix monte à ${fr(price)} ${unit}.`, "ok"); });
+    box.querySelector("#w_sell").addEventListener("click", () => { price -= 10; show(`Le vendeur pressé ne veut pas attendre. Il accepte le prix acheteur. Le prix descend à ${fr(price)} ${unit}.`, "ko"); });
     box.querySelector("#w_calm").addEventListener("click", () => { show(`Chacun attend à son prix. Personne ne cède. Le prix reste à ${fr(price)} ${unit}.`, ""); });
   };
 
@@ -106,22 +129,27 @@
   W.wall = (box, p, done, ctx) => {
     const unit = ctx.esc(p.unit || "boules"); const wallQty = p.wallQty || 200; const buy = p.buy || 50;
     const levels = (p.levels || [[500, 20], [510, 30], [520, 50], [530, wallQty, true], [540, 40]]).map(l => ({ px: l[0], q: l[1], wall: !!l[2] }));
-    const wallPx = (levels.find(l => l.wall) || {}).px; let bought = 0;
+    const wallPx = (levels.find(l => l.wall) || {}).px; let bought = 0; const want = p.want || 100; const wanted = levels[0].px;
+    const takes = []; /* ce que Moussa a payé, ligne par ligne : { px, q } */
+    const addTake = (pxv, q) => { const t = takes[takes.length - 1]; if (t && t.px === pxv) t.q += q; else takes.push({ px: pxv, q }); };
+    /* Le calcul posé, pour les n premières boules : 20 × 500 = 10 000 ; 30 × 510 = 15 300 ; 50 × 520 = 26 000 ; 51 300 ÷ 100 = 513. */
+    const one = unit === "boules" ? "la boule" : "l'unité"; const n1 = v => fr(v, v % 1 ? 1 : 0);
+    const calc = n => { let left = n, tot = 0, got = 0; const lines = []; for (const t of takes) { if (left <= 0) break; const q = Math.min(left, t.q); lines.push(`${q} × ${fr(t.px)} = ${fr(q * t.px)}`); tot += q * t.px; got += q; left -= q; } if (!got) return ""; const avg = tot / got; return `<b>Le calcul :</b> ${lines.join(" ; ")}. En tout : ${fr(tot)} F pour ${got} ${unit}. ${fr(tot)} ÷ ${got} = ${n1(avg)} F ${one}.${got >= want ? ` Il voulait payer ${fr(wanted)} : ${n1(avg)} − ${fr(wanted)} = ${n1(avg - wanted)} F de plus ${one === "la boule" ? "par boule" : "par unité"}.` : ""}`; };
     const render = () => {
       const first = levels.find(l => l.q > 0);
-      box.innerHTML = `<p class="mini">Le carnet d'ordres côté vendeurs : chaque ligne, un prix et la quantité qui attend, du moins cher (en bas) au plus cher (en haut). La ligne énorme, c'est le mur : la grossiste d'Anyama.</p>
+      box.innerHTML = `<p class="mini">Le carnet d'ordres côté vendeurs : chaque ligne, un prix vendeur et la quantité qui attend, du moins cher (en bas) au plus cher (en haut). La ligne énorme, c'est le mur : la grossiste d'Anyama.</p>
         <div class="book">${levels.slice().reverse().map(l => `<div class="r ask ${l.wall ? "wallrow" : ""} ${l.q === 0 ? "gone" : ""}"><i style="width:${Math.round(100 * l.q / wallQty)}%"></i><span>${fr(l.px)} francs</span><span>${l.q} ${unit}${l.wall ? " (le mur)" : ""}</span></div>`).join("")}</div>
         <div class="pricebig">Meilleur prix vendeur : <b>${first ? fr(first.px) : "—"}</b> francs</div><p class="mini">Le prix, c'est le dernier échange. Le meilleur prix vendeur, c'est ce que paiera le prochain acheteur pressé.</p>
         <button class="btn wide" id="w_eat">Moussa achète ${buy} ${unit}</button><div id="w_msg"></div>`;
       box.querySelector("#w_eat").addEventListener("click", () => {
         let left = buy; let crossed = false;
-        for (const l of levels) { if (left <= 0) break; const take = Math.min(left, l.q); l.q -= take; left -= take; if (l.wall && l.q === 0) crossed = true; }
-        bought += buy; render();
-        const m = box.querySelector("#w_msg"); const now = levels.find(l => l.q > 0);
-        if (crossed) { m.innerHTML = `<div class="reveal ok">Le mur est vidé. D'un coup, le meilleur prix vendeur saute à ${now ? fr(now.px) : "plus haut"} francs. Tant que le mur tenait, le prix ne pouvait pas passer.</div>`; done({ bought }); }
-        else if (now && now.wall) m.innerHTML = `<div class="reveal">Moussa est arrivé au mur. Il reste ${now.q} ${unit} à ${fr(wallPx)} francs. Le meilleur prix vendeur ne bouge plus tant que cette ligne n'est pas vidée.</div>`;
-        else if (!now) m.innerHTML = `<div class="reveal">Plus rien à vendre. Il faut attendre de nouveaux vendeurs.</div>`;
-        else m.innerHTML = `<div class="reveal">Moussa a pris les ${unit} les moins chères. Le meilleur prix vendeur monte à ${fr(now.px)} francs : le prochain pressé paiera plus.</div>`;
+        for (const l of levels) { if (left <= 0) break; const take = Math.min(left, l.q); if (take > 0) addTake(l.px, take); l.q -= take; left -= take; if (l.wall && l.q === 0) crossed = true; }
+        bought += buy - left; render();
+        const m = box.querySelector("#w_msg"); const now = levels.find(l => l.q > 0); const paid = calc(Math.min(bought, want)); const paidAll = bought > want ? `<br>Moussa a continué après ses ${want} ${unit} : ${bought} ${unit} en tout.` : "";
+        if (crossed) { m.innerHTML = `<div class="reveal ok">Le mur est vidé. D'un coup, le meilleur prix vendeur saute à ${now ? fr(now.px) : "plus haut"} francs. Tant que le mur tenait, le prix ne pouvait pas passer.<br>${paid}${paidAll}</div>`; done({ bought }); }
+        else if (now && now.wall) m.innerHTML = `<div class="reveal">Moussa est arrivé au mur. Il reste ${now.q} ${unit} à ${fr(wallPx)} francs. Le meilleur prix vendeur ne bouge plus tant que cette ligne n'est pas vidée.<br>${paid}${paidAll}</div>`;
+        else if (!now) m.innerHTML = `<div class="reveal">Plus rien à vendre. Il faut attendre de nouveaux vendeurs.<br>${paid}${paidAll}</div>`;
+        else m.innerHTML = `<div class="reveal">Moussa a pris les ${unit} les moins chères. Le meilleur prix vendeur monte à ${fr(now.px)} francs : le prochain pressé paiera plus.<br>${paid}</div>`;
       });
     };
     render();
@@ -195,31 +223,44 @@
   /* ---------- fees : calculatrice des coûts ---------- */
   W.fees = (box, p, done, ctx) => {
     const feePct = p.feePct == null ? 0.1 : p.feePct, spreadPct = p.spreadPct == null ? 0 : p.spreadPct; let touched = false;
-    box.innerHTML = `<label>Montant de ton trade papier (glisse le curseur)</label><input type="range" id="w_amt" min="15000" max="100000" step="5000" value="30000"><div class="pricebig"><b id="w_amtV"></b> francs</div>
-      <table class="tbl"><tr><td>Frais à l'achat (${fr(feePct, 2)} %)</td><td id="w_f1"></td></tr><tr><td>Frais à la vente (${fr(feePct, 2)} %)</td><td id="w_f2"></td></tr><tr><td>Écart (spread)${spreadPct ? " : " + fr(spreadPct, 2) + " %" : ", presque nul sur le Bitcoin"}</td><td id="w_sp"></td></tr><tr><th>Total payé sans que le prix bouge</th><th id="w_tot"></th></tr></table>
-      <div class="reveal" id="w_need"></div>`;
+    const pc = v => String(v).replace(".", ","); /* 0.1 → « 0,1 % » (jamais « 0,10 % ») */
+    const perPk = feePct * 10; /* frais par paquet de 1 000 F : 0,1 % → 1 F */
+    box.innerHTML = `<label>Montant de ton trade papier (glisse le curseur)</label><input type="range" id="w_amt" min="15000" max="100000" step="5000" value="20000"><div class="pricebig"><b id="w_amtV"></b> francs</div>
+      <table class="tbl"><tr><td>Frais à l'achat (${pc(feePct)} %)</td><td id="w_f1"></td></tr><tr><td>Frais à la vente (${pc(feePct)} %)</td><td id="w_f2"></td></tr><tr><td>Écart (spread)${spreadPct ? " : " + pc(spreadPct) + " %" : ", presque nul sur le Bitcoin"}</td><td id="w_sp"></td></tr><tr><th>Total payé sans que le prix bouge</th><th id="w_tot"></th></tr></table>
+      <div class="reveal" id="w_calc"></div><div class="reveal" id="w_need"></div>`;
     const a = box.querySelector("#w_amt");
-    const upd = () => { const amt = +a.value; const f = amt * feePct / 100, s = amt * spreadPct / 100, tot = 2 * f + s; box.querySelector("#w_amtV").textContent = fr(amt); box.querySelector("#w_f1").textContent = fr(f) + " F"; box.querySelector("#w_f2").textContent = fr(f) + " F"; box.querySelector("#w_sp").textContent = fr(s) + " F"; box.querySelector("#w_tot").textContent = fr(tot) + " F"; box.querySelector("#w_need").innerHTML = `Pour revenir à zéro, le prix doit monter de <b>${fr(100 * tot / amt, 2)} %</b> juste pour payer les coûts. Avant le premier franc de gain.`; };
+    const upd = () => {
+      const amt = +a.value; const f = amt * feePct / 100, s = amt * spreadPct / 100, tot = 2 * f + s; const pk = amt / 1000;
+      box.querySelector("#w_amtV").textContent = fr(amt); box.querySelector("#w_f1").textContent = fr(f) + " F"; box.querySelector("#w_f2").textContent = fr(f) + " F"; box.querySelector("#w_sp").textContent = fr(s) + " F"; box.querySelector("#w_tot").textContent = fr(tot) + " F";
+      box.querySelector("#w_calc").innerHTML = `<b>Le calcul, par paquets de 1 000 F :</b> ${fr(amt)} F, c'est ${fr(pk)} paquets de 1 000 F. ${pc(feePct)} %, c'est ${fr(perPk, perPk % 1 ? 1 : 0)} F par paquet. À l'achat : ${fr(pk)} × ${fr(perPk, perPk % 1 ? 1 : 0)} = ${fr(f)} F. À la vente : ${fr(f)} F aussi. En tout : ${fr(f)} + ${fr(f)}${s ? " + " + fr(s) + " d'écart" : ""} = ${fr(tot)} F.`;
+      box.querySelector("#w_need").innerHTML = `Pour revenir à zéro, le prix doit monter d'environ <b>${pc(+(100 * tot / amt).toFixed(2))} %</b> (${fr(tot)} F sur ${fr(amt)} F), juste pour payer les coûts. Avant le premier franc de gain.`;
+    };
     a.addEventListener("input", () => { upd(); if (!touched) { touched = true; done({ touched }); } }); upd();
   };
 
   /* ---------- meteo : la Météo du marché (en direct) ---------- */
   W.meteo = async (box, p, done, ctx) => {
-    const S = ctx.state; const today = ctx.today(); const already = S.lastMeteo === today;
+    const S = ctx.state; const today = ctx.today(); const already = S.lastMeteo === today; const prev = already ? (S.meteo || []).slice().reverse().find(m => m.d === today) : null;
     box.innerHTML = `<canvas id="w_cv" class="chart"></canvas><p class="mini" id="w_info">Chargement des 30 derniers jours…</p>
-      <p class="mini">La règle : coupe les 30 bâtons en deux, 15 anciens à gauche, 15 récents à droite. Plus hauts ET plus bas des récents au-dessus : hausse. En dessous : baisse. Sinon : range.</p>
-      <h3>Aujourd'hui, le marché est en…</h3>
+      <p class="mini">La règle (15 anciennes à gauche, 15 récentes à droite) : ${W.RULE30}</p>
+      <p class="mini">${W.METEO_NOTE}</p>
+      <h3>Sur ces 30 jours, le marché a été en…</h3>
       <div class="choice"><button data-v="hausse">Hausse</button><button data-v="baisse">Baisse</button><button data-v="range">Range<br><small>(ça hésite)</small></button></div>
       <label>Pourquoi, avec tes mots (une ligne)</label><input id="w_why" type="text" placeholder="ex. : les bougies montent depuis une semaine">
       <button class="btn wide" id="w_ok" ${already ? "disabled" : ""}>${already ? "Météo du jour déjà faite" : "Valider ma météo (+5 XP)"}</button>
-      <p class="mini">Il n'y a pas de mauvaise réponse aujourd'hui. On apprend à regarder avant d'apprendre à nommer.</p>`;
-    let choice = null; box.querySelectorAll(".choice button").forEach(b => b.addEventListener("click", () => { box.querySelectorAll(".choice button").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); choice = b.dataset.v; }));
+      <div class="reveal hidden" id="w_rule"></div>
+      <p class="mini">Choisis d'abord avec tes yeux. Après, l'app te montre ce que dit la règle. On apprend à regarder avant d'apprendre à nommer.</p>`;
+    let choice = prev ? prev.v : null, J = null, validated = already;
+    /* Après le choix de l'élève : la réponse de la règle (calculée), sans « faux » */
+    const showRule = () => { if (!validated || !J) return; const el = box.querySelector("#w_rule"); if (!el) return; const same = choice === J.sens; el.classList.remove("hidden"); el.className = "reveal " + (same ? "ok" : ""); el.innerHTML = `<b>D'après la règle : ${J.sens}.</b> ${W.explain30(J)} ${same ? `Toi aussi, tu as vu ${choice}.` : W.hint30(J, choice)}<br><span class="mini">${W.METEO_NOTE}</span>`; };
+    box.querySelectorAll(".choice button").forEach(b => { if (prev && b.dataset.v === prev.v) b.classList.add("sel"); b.addEventListener("click", () => { if (validated) return; box.querySelectorAll(".choice button").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); choice = b.dataset.v; }); });
     if (already) done({ already: true });
     box.querySelector("#w_ok").addEventListener("click", () => {
       if (!choice) return ctx.toast("Choisis hausse, baisse ou range"); const why = box.querySelector("#w_why").value.trim(); if (!why) return ctx.toast("Écris pourquoi, une ligne");
-      ctx.recordMeteo(choice, why); box.querySelector("#w_ok").disabled = true; box.querySelector("#w_ok").textContent = "Météo notée"; done({ choice });
+      ctx.recordMeteo(choice, why); validated = true; box.querySelector("#w_ok").disabled = true; box.querySelector("#w_ok").textContent = "Météo notée"; showRule(); done({ choice, rule: J ? J.sens : null });
     });
     const d = await Data.klines("BTCUSDT", "1d", 30); const cv = box.querySelector("#w_cv"); if (!cv) return; drawCandles(cv, d.candles); window.addEventListener("resize", () => drawCandles(cv, d.candles));
+    J = W.judge30(d.candles); showRule();
     const info = box.querySelector("#w_info"); if (info) info.textContent = (d.demo ? "Bougies d'exemple (pas de connexion). " : "") + "BTC/USDT, une bougie = un jour. Dernier prix : " + fr(d.candles[d.candles.length - 1].c) + " USDT.";
   };
 
@@ -229,8 +270,8 @@
     const step = () => {
       if (i >= items.length) { box.innerHTML = `<div class="reveal ${score === items.length ? "ok" : ""}"><b>Score : ${score} / ${items.length}.</b> ${score === items.length ? "Détective. Tu reconnais une arnaque en dix secondes." : score >= items.length - 2 ? "Presque. Relis les signes et refais le détecteur dans Jeux." : "Le détecteur se refait dans Jeux autant de fois que tu veux. Le réflexe vient avec la répétition."}${wrongGuaranteed.length ? `<br><b>Attention :</b> un message qui dit « garanti » est toujours une arnaque. Tu en as laissé passer ${wrongGuaranteed.length}.` : ""}</div>`; if (score === items.length) ctx.badge("detective"); done({ score, total: items.length }); return; }
       const it = items[i];
-      box.innerHTML = `<p class="mini">Message ${i + 1} sur ${items.length} · score ${score}</p><div class="msg">${ctx.esc(it.text)}</div><div class="cols2"><button class="btn" id="w_scam">Arnaque</button><button class="btn ghost" id="w_ok">Correct</button></div><div id="w_fb"></div>`;
-      const answer = v => { const right = v === !!it.scam; if (right) score++; if (!right && it.scam && /garanti/i.test(it.text)) wrongGuaranteed.push(i); box.querySelector("#w_fb").innerHTML = `<div class="reveal ${right ? "ok" : "ko"}"><b>${right ? "Oui" : "Non"}</b> : ${it.scam ? "c'est une arnaque." : "ce message est correct."} ${ctx.esc(it.why || "")}<br><button class="btn small" id="w_next" style="margin-top:8px">Message suivant</button></div>`; box.querySelector("#w_scam").disabled = box.querySelector("#w_ok").disabled = true; box.querySelector("#w_next").addEventListener("click", () => { i++; step(); }); };
+      box.innerHTML = `<p class="mini">Message ${i + 1} sur ${items.length} · score ${score}</p><div class="msg">${ctx.esc(it.text)}</div><div class="cols2"><button class="btn" id="w_scam">Arnaque</button><button class="btn ghost" id="w_ok">Aucun signe</button></div><div id="w_fb"></div>`;
+      const answer = v => { const right = v === !!it.scam; if (right) score++; if (!right && it.scam && /garanti/i.test(it.text)) wrongGuaranteed.push(i); box.querySelector("#w_fb").innerHTML = `<div class="reveal ${right ? "ok" : "ko"}"><b>${right ? "Oui" : "Non"}</b> : ${it.scam ? "c'est une arnaque." : "ce message ne montre aucun signe. Ça ne prouve rien : un arnaqueur peut écrire une phrase honnête."} ${ctx.esc(it.why || "")}<br><button class="btn small" id="w_next" style="margin-top:8px">Message suivant</button></div>`; box.querySelector("#w_scam").disabled = box.querySelector("#w_ok").disabled = true; box.querySelector("#w_next").addEventListener("click", () => { i++; step(); }); };
       box.querySelector("#w_scam").addEventListener("click", () => answer(true)); box.querySelector("#w_ok").addEventListener("click", () => answer(false));
     };
     step();
@@ -238,9 +279,9 @@
 
   /* ---------- quiz : questions à choix ---------- */
   W.quiz = (box, p, done, ctx) => {
-    const items = p.items || []; let i = 0, score = 0;
+    const items = p.items || []; let i = 0, score = 0; const need = p.pass != null ? p.pass : Math.min(items.length, 5); /* seuil affiché = seuil du code : 5 sur 7 */
     const step = () => {
-      if (i >= items.length) { box.innerHTML = `<div class="reveal ${score >= items.length - 1 ? "ok" : ""}"><b>Score : ${score} / ${items.length}.</b> ${score === items.length ? "Tout juste." : "Pour les questions ratées : relis la carte de l'épisode concerné, dans le Parcours."}</div>`; done({ score, total: items.length }); return; }
+      if (i >= items.length) { box.innerHTML = `<div class="reveal ${score >= need ? "ok" : ""}"><b>Score : ${score} / ${items.length}.</b> Il en faut ${need} sur ${items.length}. ${score === items.length ? "Tout juste." : score >= need ? "C'est bon. Pour les questions ratées : relis la carte de l'épisode concerné, dans le Parcours." : "Pas encore " + need + " : relis la carte de fin des épisodes ratés, dans le Parcours, puis rejoue."}</div>`; done({ score, total: items.length, need }); return; }
       const it = items[i];
       box.innerHTML = `<p class="mini">Question ${i + 1} sur ${items.length}</p><p><b>${ctx.esc(it.q)}</b></p><div class="choices">${it.choices.map((c, k) => `<button class="btn ghost wide" data-k="${k}">${ctx.esc(c)}</button>`).join("")}</div><div id="w_fb"></div>`;
       box.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { const right = +b.dataset.k === it.answer; if (right) score++; box.querySelectorAll("[data-k]").forEach(x => { x.disabled = true; if (+x.dataset.k === it.answer) x.classList.add("good"); }); box.querySelector("#w_fb").innerHTML = `<div class="reveal ${right ? "ok" : "ko"}"><b>${right ? "Oui." : "Non."}</b> ${ctx.esc(it.why || "")}<br><button class="btn small" id="w_next" style="margin-top:8px">Suivant</button></div>`; box.querySelector("#w_next").addEventListener("click", () => { i++; step(); }); }));

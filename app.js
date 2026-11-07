@@ -1,14 +1,14 @@
-/* Le Club des Patients — moteur de l'app (vanilla JS). Parcours guidé, verrouillé, sans coach. Zéro emoji. v3.0 (dictionnaire + analogie unique, 06/11 soir) */
+/* Le Club des Patients — moteur de l'app (vanilla JS). Parcours guidé, verrouillé, sans coach. Zéro emoji. v3.1 (comité du 07/11 : règles D1/D2 uniques, jeu des journées d'Awa, météo avec réponse de la règle) */
 (function () {
   "use strict";
-  const VERSION = "3.0";
+  const VERSION = "3.1";
   const $ = (s, el = document) => el.querySelector(s);
   const view = $("#view");
   const KEY = "club_patients_v2";
   const EP_ORDER = ["ep01", "ep02", "ep03", "ep04", "ep05", "ep06", "ep07", "ep08"];
   const MAX_EP_PER_DAY = 1, MAX_RAPPELS_PER_DAY = 2, RAPPEL_STOP_DAYS = 60;
   const WIDGET_BADGES = ["oeil", "detective"];
-  const BADGES = [["deux_prix", "Deux prix", "Épisode 1 : deux rappels réussis (Facile ou Réfléchi)"], ["prix_bouge", "Prix qui bouge", "Épisode 2 : deux rappels réussis"], ["file_attente", "File d'attente", "Épisode 3 : deux rappels réussis"], ["oeil", "Œil de mèche", "5 sur 5 à la Chasse aux mèches"], ["altitude", "Unité de temps", "Épisode 5 : deux rappels réussis"], ["calculatrice", "Calculatrice", "Épisode 6 : deux rappels réussis"], ["detective", "Détective", "10 sur 10 au Détecteur d'arnaque"], ["saison1", "Saison 1", "Les 8 épisodes terminés"], ["meteorologue", "Météorologue", "14 météos de suite"], ["fidele", "Fidèle", "7 rappels faits le jour prévu"], ["porte1", "Porte 1", "L'examen de fin de saison réussi"]];
+  const BADGES = [["deux_prix", "Deux prix", "Épisode 1 : deux rappels réussis (Facile ou Réfléchi)"], ["prix_bouge", "Prix qui bouge", "Épisode 2 : deux rappels réussis"], ["file_attente", "Liste d'attente", "Épisode 3 : deux rappels réussis"], ["oeil", "Œil de mèche", "5 sur 5 à la Chasse aux mèches"], ["altitude", "Trois unités de temps", "Épisode 5 : deux rappels réussis"], ["calculatrice", "Calculatrice", "Épisode 6 : deux rappels réussis"], ["detective", "Détective", "10 sur 10 au Détecteur d'arnaque"], ["saison1", "Saison 1", "Épisode 8 : deux rappels réussis"], ["meteorologue", "Météorologue", "14 météos de suite"], ["fidele", "Fidèle", "7 rappels faits le jour prévu"], ["porte1", "Porte 1", "L'examen de fin de saison réussi"]];
   const GRADES = [["F", "Facile"], ["E", "Réfléchi"], ["I", "Indice"], ["X", "Pas su"]];
 
   /* ---------- dates ---------- */
@@ -75,7 +75,7 @@
 
   /* ---------- le parcours : où aller maintenant ---------- */
   function nextStep() {
-    if (!state.accepted) return { id: "onboard", label: "Commencer", why: "Ton prénom et les trois règles du Club.", mins: 3 };
+    if (!state.accepted) return { id: "onboard", label: "Commencer", why: "Ton prénom et les quatre règles du Club.", mins: 3 };
     if (isDone("ep02") && state.lastMeteo !== today()) return { id: "meteo", label: "Météo du marché", why: "Chaque jour, avant tout le reste : regarder le marché, deux minutes.", mins: 2 };
     const due = dueRappels();
     if (due.length && rappelsDoneToday() < MAX_RAPPELS_PER_DAY) { const id = due[0]; const r = state.rappels[id]; return { id: "rappel", ep: id, label: "Rappel de l'épisode " + EP(id).num, why: (r.count === 0 ? "Deux jours ont passé. " : "") + "Trois questions, de tête : c'est comme ça que ça reste.", mins: 3 }; }
@@ -145,11 +145,12 @@
     let k = 0; const name = state.name || "";
     const screens = [
       () => `<div class="card"><h3>Bienvenue</h3><h1>Comment tu t'appelles ?</h1><p>Juste ton prénom. Il reste sur ton téléphone, il ne part nulle part.</p><input id="ob_name" type="text" placeholder="Prénom" value="${esc(name)}" autocomplete="given-name"></div>`,
-      () => `<div class="card"><h3>Les trois règles du Club</h3>
-        <div class="step"><div class="n">1</div><div><b>Zéro argent réel.</b> Pendant tout ce cours, tu n'achètes rien, tu ne déposes rien. Tout se fait avec des prix réels mais de l'argent imaginaire.</div></div>
+      () => `<div class="card"><h3>Les quatre règles du Club</h3>
+        <div class="step"><div class="n">1</div><div><b>Zéro argent réel.</b> Pendant les saisons 1 à 4, tu n'achètes rien, tu ne déposes rien. Tout se fait avec des prix réels mais de l'argent imaginaire.</div></div>
         <div class="step"><div class="n">2</div><div><b>Rien à acheter, personne à payer.</b> Les outils sont gratuits : cette app, un site de graphiques, le site d'une bourse sans compte.</div></div>
-        <div class="step"><div class="n">3</div><div><b>Une étape à la fois.</b> L'app ouvre les étapes dans l'ordre. Chaque jour : la météo, puis les rappels, puis l'épisode. Un épisode par jour. Les XP, ce sont tes points : ils récompensent l'effort, jamais un gain d'argent.</div></div></div>`,
-      () => `<div class="card"><h3>Avant de commencer</h3><p>Ce cours t'apprend à <b>lire</b> un marché. Ce n'est pas un conseil en investissement. Il ne te dit jamais quoi acheter ou vendre, et ne promet aucun gain. La plupart des gens qui tradent perdent de l'argent, et le cours te le répètera.</p><p>Le jour où tu placeras de l'argent réel, tu pourras tout perdre. Le Club ne gère jamais ton argent et n'est pas responsable de tes décisions.</p><p>Tu ne donnes jamais un mot de passe, un code, ni une photo de ta carte d'identité à qui que ce soit, même à quelqu'un qui dit être « le support ».</p>
+        <div class="step"><div class="n">3</div><div><b>Une étape à la fois.</b> L'app ouvre les étapes dans l'ordre. Chaque jour : la météo, puis les rappels, puis l'épisode. Un épisode par jour. Les XP, ce sont tes points : ils récompensent l'effort, jamais un gain d'argent.</div></div>
+        <div class="step"><div class="n">4</div><div><b>Tes codes restent à toi.</b> Personne ne reçoit ton mot de passe, ton code, ni ton écran. Pas même « le support ».</div></div></div>`,
+      () => `<div class="card"><h3>Avant de commencer</h3><p>Ce cours t'apprend à <b>lire</b> un marché. Ce n'est pas un conseil en investissement. Il ne te dit jamais quoi acheter ou vendre, et ne promet aucun gain. La plupart des gens qui tradent perdent de l'argent, et le cours te le répètera.</p><p>Le jour où tu placeras de l'argent réel, tu pourras tout perdre. Le Club ne gère jamais ton argent et n'est pas responsable de tes décisions.</p><p>Tu ne donnes jamais un mot de passe, un code, une photo de ta carte d'identité, ni ton écran en partage à qui que ce soit, même à quelqu'un qui dit être « le support ».</p>
         <label class="check"><input type="checkbox" id="ob_ok"><span>J'ai compris et j'accepte ces conditions. J'ai 18 ans ou plus, et je garde mon argent réel pour plus tard.</span></label></div>`
     ];
     const render = () => {
@@ -193,7 +194,7 @@
   /* ---------- météo (page) ---------- */
   function meteo() {
     if (!isDone("ep02")) { h(`<h1>Météo du marché</h1>${lockCard("Pas encore", "La météo s'ouvre avec l'épisode 2 : c'est là que tu apprends à la lire. Jusque-là, l'app te guide depuis l'accueil.")}<button class="btn" data-go="home">Retour à l'accueil</button>`); return; }
-    h(`<h1>Météo du marché</h1><p class="muted">Regarde, puis dis en un mot ce que fait le marché. Chaque jour, la même chose : c'est la discipline qui fait la différence.</p><div class="card" id="meteoBox"></div>
+    h(`<h1>Météo du marché</h1><p class="muted">Regarde, puis dis en un mot ce que le marché a fait sur 30 jours. Après ton choix, l'app te montre la réponse de la règle. Chaque jour, la même chose : c'est la discipline qui fait la différence.</p><div class="card" id="meteoBox"></div>
       <div class="card"><h3>Tes dernières météos</h3>${state.meteo.slice(-7).reverse().map(m => `<div class="check"><span><b>${fr(m.d)}</b> · ${esc(m.v)} · ${esc(m.why)}</span></div>`).join("") || '<p class="muted">Aucune pour l\'instant.</p>'}<p class="mini">Série : ${state.streak} jour(s) · record ${state.bestStreak} · total ${state.meteo.length}.</p></div><div id="afterMeteo"></div>`);
     window.WIDGETS.meteo($("#meteoBox"), {}, info => { if (info && info.choice) { const a = andNow(); $("#afterMeteo").innerHTML = a.html.replace('class="card"', 'class="card navy"'); bindStep(a.s); view.querySelectorAll("#afterMeteo [data-go]").forEach(b => b.addEventListener("click", () => go(b.dataset.go))); } }, ctx);
   }
@@ -210,6 +211,8 @@
     const setOk = v => { ok = v; const b = $("#nextBtn"); if (b) { b.disabled = !v; $("#gateHint").textContent = v ? "" : hint(); } };
     const preScreen = E.screens.find(x => x.type === "pre"); const preIdx = E.screens.indexOf(preScreen); const preA = preIdx >= 0 && S.data[preIdx] ? (S.data[preIdx].a || []) : [];
     let body = ""; glSeen = new Set();
+    /* mission : le dernier jeu (widget) de l'épisode avant cet écran, pour le revoir sans « Précédent » */
+    const replayIdx = sc.type === "mission" ? E.screens.slice(0, k).reduce((r, x, i) => (x.type === "widget" && window.WIDGETS[x.widget] ? i : r), -1) : -1;
     switch (sc.type) {
       case "pre": body = `<div class="card"><h3>${esc(sc.title || "Avant de commencer : 3 questions")}</h3><p class="mini">Tu ne connais peut-être pas encore les réponses. Écris ce que tu penses, même « je ne sais pas ». On y revient à la fin.</p>${sc.questions.map((q, i) => `<label>${i + 1}. ${gl(q)}</label><input type="text" data-pre="${i}" value="${esc((D.a || [])[i] || "")}" placeholder="Ta réponse, ou « je ne sais pas »">`).join("")}</div>`; break;
       case "story": body = `${sc.title ? `<h2>${esc(sc.title)}</h2>` : ""}<div class="scene">${img(sc.img, sc.alt)}<div>${sc.text.map(t => `<p>${gl(t)}</p>`).join("")}</div></div>`; break;
@@ -218,7 +221,7 @@
       case "idea": body = `<div class="card"><h2 style="margin-top:0">${esc(sc.title)}</h2>${(sc.points || []).map(p => `<p><b>${esc(p[0])}</b> : ${gl(p[1])}</p>`).join("")}${sc.quote ? `<div class="quote">« ${esc(sc.quote)} »</div>` : ""}${sc.after ? `<p>${gl(sc.after)}</p>` : ""}</div>`; break;
       case "widget": body = `<div class="card"><h3>${esc(sc.title || "")}</h3>${sc.intro ? `<p class="mini">${gl(sc.intro)}</p>` : ""}<div id="wbox"></div>${sc.after ? `<div class="reveal hidden" id="wafter">${gl(sc.after)}</div>` : ""}</div>`; break;
       case "check": body = `<div class="card"><h3>Vérifie que tu as compris</h3><p><b>${gl(sc.q)}</b></p><div class="choices">${sc.choices.map((c, i) => `<button class="btn ghost wide" data-c="${i}">${esc(c)}</button>`).join("")}</div><div id="cfb"></div></div>`; break;
-      case "mission": body = `<div class="card"><h3>${esc(sc.title || "Mission du jour")}</h3><p class="mini">${gl(sc.intro || "")}</p>${sc.steps.map((s, i) => `<label class="check ${(D.steps || [])[i] ? "done" : ""}"><input type="checkbox" data-step="${i}" ${(D.steps || [])[i] ? "checked" : ""}><span>${esc(s)}</span></label>`).join("")}${sc.note ? `<label>${esc(sc.note.label)}</label><input type="text" id="mNote" value="${esc(D.note || "")}" placeholder="${esc(sc.note.placeholder || "")}">` : ""}${sc.fallback ? `<p class="mini">${esc(sc.fallback)}</p>` : ""}</div>`; break;
+      case "mission": body = `<div class="card"><h3>${esc(sc.title || "Mission du jour")}</h3><p class="mini">${gl(sc.intro || "")}</p>${sc.steps.map((s, i) => `<label class="check ${(D.steps || [])[i] ? "done" : ""}"><input type="checkbox" data-step="${i}" ${(D.steps || [])[i] ? "checked" : ""}><span>${esc(s)}</span></label>`).join("")}${sc.note ? `<label>${esc(sc.note.label)}</label><input type="text" id="mNote" value="${esc(D.note || "")}" placeholder="${esc(sc.note.placeholder || "")}">` : ""}${sc.fallback ? `<p class="mini">${esc(sc.fallback)}</p>` : ""}${replayIdx >= 0 ? `<p><button class="btn ghost small" id="mReplay">Revoir le jeu</button></p><div class="reveal hidden" id="wreplay"></div>` : ""}</div>`; break;
       case "post": body = `<div class="card"><h3>Les 3 questions de fin</h3><p class="mini">Réponds de tête, un mot suffit. Puis vois la réponse et note-toi, franchement.</p>${sc.questions.map((p, i) => `<div class="postq"><b>${i + 1}. ${gl(p.q)}</b>${preA[i] ? `<p class="mini">Avant l'épisode, tu avais écrit : « ${esc(preA[i])} »</p>` : ""}<input type="text" data-try="${i}" value="${esc((D.try || [])[i] || "")}" placeholder="Ta réponse de tête"><button class="btn small ghost" data-rev="${i}" ${(D.try || [])[i] ? "" : "disabled"}>Voir la réponse</button><div class="reveal ${(D.rev || [])[i] ? "" : "hidden"}" id="rev${i}">${esc(p.a)}</div>${gradeButtons("g", i, (D.g || {})[i])}</div>`).join("")}</div>`; break;
       case "explain": body = `<div class="card"><h3>Explique-moi</h3><p><b>${esc(sc.prompt)}</b></p><p class="mini">Avec tes mots, comme à une amie. Au moins ${sc.min || 30} mots, des vrais.</p><textarea id="exT" placeholder="J'explique…">${esc(D.text || "")}</textarea><p class="mini" id="exC"></p><button class="btn" id="exBtn" disabled>Comparer avec l'explication du Club</button><div class="reveal ${D.rev ? "" : "hidden"}" id="exM"><b>L'explication du Club :</b> ${esc(sc.model || "")}<br><span class="mini">La tienne n'a pas besoin d'être pareille. Elle doit être vraie et claire.</span></div></div>`; break;
       case "card": body = `<div class="card navy"><h3>Carte de fin (la seule chose qu'on relira)</h3>${sc.items.map(c => `<p><b>${esc(c[0])}</b> : ${gl(c[1])}</p>`).join("")}</div><p class="mini">Cette carte reste dans le Parcours. Tes rappels viendront d'ici : dans deux jours, puis de plus en plus espacés si tu te souviens.</p>`; break;
@@ -243,7 +246,11 @@
       if (D.ok) showOk();
       view.querySelectorAll("[data-c]").forEach(b => b.addEventListener("click", () => { const right = +b.dataset.c === sc.answer; D.tries = (D.tries || 0) + 1; if (right) { D.ok = true; save(); showOk(); } else { save(); view.querySelectorAll("[data-c]").forEach(x => x.disabled = true); b.classList.add("bad"); $("#cfb").innerHTML = `<div class="reveal ko">${esc(sc.ko)}<br><button class="btn small" id="reread" style="margin-top:8px">Relire l'écran d'avant, puis réessayer</button></div>`; $("#reread").addEventListener("click", () => { S.screen = k - 1; save(); runEp(id); window.scrollTo(0, 0); }); } }));
     }
-    else if (sc.type === "mission") { const chk = () => { D.steps = [...view.querySelectorAll("[data-step]")].map(c => c.checked); const nt = $("#mNote"); D.note = nt ? nt.value.trim() : ""; setOk(D.steps.every(Boolean) && (!sc.note || D.note.length > 0)); save(); }; view.querySelectorAll("[data-step]").forEach(c => c.addEventListener("change", () => { c.closest(".check").classList.toggle("done", c.checked); chk(); })); const nt = $("#mNote"); if (nt) nt.addEventListener("input", chk); chk(); }
+    else if (sc.type === "mission") {
+      const chk = () => { D.steps = [...view.querySelectorAll("[data-step]")].map(c => c.checked); const nt = $("#mNote"); D.note = nt ? nt.value.trim() : ""; setOk(D.steps.every(Boolean) && (!sc.note || D.note.length > 0)); save(); }; view.querySelectorAll("[data-step]").forEach(c => c.addEventListener("change", () => { c.closest(".check").classList.toggle("done", c.checked); chk(); })); const nt = $("#mNote"); if (nt) nt.addEventListener("input", chk); chk();
+      /* « Revoir le jeu » : le widget réaffiché sous la mission, en lecture seule (ne bloque rien, ne donne ni XP, ni badge, ni météo) */
+      const rp = $("#mReplay"); if (rp) rp.addEventListener("click", () => { const ws = E.screens[replayIdx]; const box = $("#wreplay"); box.classList.toggle("hidden"); rp.textContent = box.classList.contains("hidden") ? "Revoir le jeu" : "Cacher le jeu"; if (box.dataset.on) return; box.dataset.on = "1"; box.innerHTML = `<p class="mini"><b>${esc(ws.title || "Le jeu de l'épisode")}</b> : pour relire seulement, rien n'est compté ici.</p><div></div>`; window.WIDGETS[ws.widget](box.lastElementChild, ws.params || {}, () => { }, Object.assign({}, ctx, { recordMeteo: () => { }, badge: () => { } })); });
+    }
     else if (sc.type === "post") {
       D.rev = D.rev || []; D.g = D.g || {}; D.try = D.try || []; const chk = () => setOk(sc.questions.every((q, i) => D.rev[i] && D.g[i]));
       view.querySelectorAll("[data-try]").forEach(i => i.addEventListener("input", () => { D.try[i.dataset.try] = i.value.trim(); view.querySelector(`[data-rev="${i.dataset.try}"]`).disabled = !D.try[i.dataset.try]; save(); }));
@@ -255,7 +262,7 @@
   function finishEp(id) {
     const E = EP(id); const S = epState(id); const first = !S.done;
     S.done = true; S.doneDate = S.doneDate || today(); S.screen = 0;
-    if (first) { state.rappels[id] = { next: addDays(today(), 2), interval: 2, count: 0, last: null }; save(); addXP(10, "ep_" + id, "Épisode " + E.num + " terminé."); if (EP_ORDER.every(isDone)) badge("saison1"); } else save();
+    if (first) { state.rappels[id] = { next: addDays(today(), 2), interval: 2, count: 0, last: null }; save(); addXP(10, "ep_" + id, "Épisode " + E.num + " terminé."); } else save();
     const a = andNow();
     h(`<div class="card navy hero"><h3>Épisode ${E.num} terminé</h3><h1 style="color:#fff">${first ? "Bien joué, " + esc(state.name) + "." : "Relu."}</h1><p>${first ? "+10 XP. " : ""}Ta carte de fin est rangée dans le Parcours. Les trois questions reviendront dans deux jours, puis de plus en plus espacées si tu te souviens.</p></div>${a.html}`);
     bindStep(a.s); window.scrollTo(0, 0); focus(false);
@@ -288,19 +295,20 @@
   /* ---------- jeux ---------- */
   function jeux() {
     const det = EP("ep07") && EP("ep07").screens.find(x => x.type === "widget" && x.widget === "detector");
-    h(`<h1>Les jeux du Club</h1><p class="muted">Chaque jeu est une leçon déguisée. Ils s'ouvrent avec les épisodes, puis se rejouent autant que tu veux.</p>
-      <div class="card"><h3>Dès maintenant</h3><h2 style="margin-top:4px">Le Jeu du R</h2><p>Un dé. 1, 2, 3 ou 4 : tu perds 1 R. 5 ou 6 : tu gagnes 3 R. Vingt lancers. R, c'est ta mise : ce que tu acceptes de perdre sur un coup. Regarde ce qui se passe quand on perd deux fois sur trois.</p><button class="btn" id="startR">Lancer la partie</button><div id="rGame"></div></div>
+    const gate = state.gate1.passed;
+    h(`<h1>Les jeux du Club</h1><p class="muted">Chaque jeu est une leçon déguisée. Ils s'ouvrent avec les épisodes et la Porte 1, puis se rejouent autant que tu veux.</p>
+      <div class="card ${gate ? "" : "lock"}"><h3>${gate ? "Rejouer" : "Après la Porte 1"}</h3><h2 style="margin-top:4px">Le jeu des journées d'Awa</h2><p>Vingt journées tirées au sort. Deux journées sur trois, Awa brade et perd 1 part. Une sur trois, elle vend bien et gagne 3 parts. Une part, c'est ce qu'elle accepte de perdre sur une journée (plus tard, on l'appellera R).</p>${gate ? `<button class="btn" id="startR">Commencer les vingt journées</button><div id="rGame"></div>` : ""}</div>
       <div class="card ${isDone("ep04") ? "" : "lock"}"><h3>${isDone("ep04") ? "Rejouer" : "Après l'épisode 4"}</h3><h2 style="margin-top:4px">La Chasse aux mèches</h2><p>Sur 30 vraies bougies, trouve les 5 plus longues mèches et dis quel côté a été refusé. Badge « Œil de mèche » à 5 sur 5.${state.games.huntBest != null ? " Ton meilleur score : " + state.games.huntBest + " / 5." : ""}</p>${isDone("ep04") ? `<button class="btn" id="startHunt">Lancer la chasse</button><div id="huntBox"></div>` : ""}</div>
       <div class="card ${isDone("ep07") ? "" : "lock"}"><h3>${isDone("ep07") ? "Rejouer" : "Après l'épisode 7"}</h3><h2 style="margin-top:4px">Le Détecteur d'arnaque</h2><p>Dix messages. Arnaque ou correct ? Badge « Détective » à 10 sur 10.${state.games.detBest != null ? " Ton meilleur score : " + state.games.detBest + " / 10." : ""}</p>${isDone("ep07") && det ? `<button class="btn" id="startDet">Lancer le détecteur</button><div id="detBox"></div>` : ""}</div>`);
-    $("#startR").addEventListener("click", () => {
-      const box = $("#rGame"); let total = 0, n = 0, wins = 0; const rows = [];
-      box.innerHTML = `<div class="dice" id="die">—</div><p class="center" id="rTot"><b>Total : 0 R</b> · 0 lancer</p><button class="btn wide" id="roll">Lancer le dé</button><table class="tbl" id="rTbl"></table>`;
+    const sr = $("#startR"); if (sr) sr.addEventListener("click", () => {
+      /* vingt journées, une sur trois « vend bien » (+3 parts), deux sur trois « brade » (−1 part) */
+      const box = $("#rGame"); let total = 0, n = 0, wins = 0; const rows = []; const parts = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v) + " part" + (Math.abs(v) > 1 ? "s" : "");
+      box.innerHTML = `<p class="center" id="rTot"><b>Total : 0 part</b> · 0 journée</p><button class="btn wide" id="roll">Journée suivante</button><table class="tbl" id="rTbl"></table>`;
       $("#roll").addEventListener("click", () => {
-        if (n >= 20) return; const d = 1 + Math.floor(Math.random() * 6); const r = d >= 5 ? 3 : -1; if (r > 0) wins++; total += r; n++;
-        $("#die").textContent = String(d);
-        $("#rTot").innerHTML = `<b>Total : ${total > 0 ? "+" : ""}${total} R</b> · ${n} lancer${n > 1 ? "s" : ""} · ${wins} gagné${wins > 1 ? "s" : ""}, ${n - wins} perdu${n - wins > 1 ? "s" : ""}`;
-        rows.unshift(`<tr><td>${n}</td><td>dé ${d}</td><td style="color:${r > 0 ? "#227846" : "#C8552B"};font-weight:700">${r > 0 ? "+3 R" : "−1 R"}</td><td>${total > 0 ? "+" : ""}${total} R</td></tr>`); $("#rTbl").innerHTML = rows.join("");
-        if (n === 20) { $("#roll").textContent = "Partie finie"; $("#roll").disabled = true; state.games.r = (state.games.r || 0) + 1; save(); if (state.games.r <= 3) addXP(10, "game_r_" + state.games.r, "Jeu du R joué."); box.insertAdjacentHTML("beforeend", `<div class="reveal"><b>Regarde :</b> tu as perdu ${n - wins} fois sur 20, et ton total est ${total > 0 ? "positif" : total === 0 ? "à zéro" : "négatif"}. Sur beaucoup de parties, ce jeu finit positif le plus souvent : chaque gain vaut trois pertes. Ce qui compte n'est pas de gagner souvent. C'est ce qu'on gagne quand on gagne, comparé à ce qu'on perd quand on perd. Tu viens de rencontrer le R. On le nomme en saison 2.</div>`); }
+        if (n >= 20) return; const good = Math.random() < 1 / 3; const r = good ? 3 : -1; if (good) wins++; total += r; n++;
+        $("#rTot").innerHTML = `<b>Total : ${parts(total)}</b> · ${n} journée${n > 1 ? "s" : ""} · ${wins} bien vendue${wins > 1 ? "s" : ""}, ${n - wins} bradée${n - wins > 1 ? "s" : ""}`;
+        rows.unshift(`<tr><td>Journée ${n}</td><td>${good ? "Awa vend bien" : "Awa brade"}</td><td style="color:${good ? "#227846" : "#C8552B"};font-weight:700">${good ? "+3 parts" : "−1 part"}</td><td>${parts(total)}</td></tr>`); $("#rTbl").innerHTML = rows.join("");
+        if (n === 20) { $("#roll").textContent = "Vingt journées faites"; $("#roll").disabled = true; state.games.r = (state.games.r || 0) + 1; save(); if (state.games.r <= 3) addXP(10, "game_r_" + state.games.r, "Journées d'Awa jouées."); box.insertAdjacentHTML("beforeend", `<div class="reveal"><b>Regarde :</b> Awa a bradé ${n - wins} journées sur 20 et bien vendu ${wins}. Son total : ${parts(total)}. ${total > 0 ? "Elle a perdu souvent et finit devant." : "Cette fois, elle ne finit pas devant : sur vingt journées seulement, ça arrive."} Perdre souvent et finir devant, c'est possible quand les pertes restent petites et les gains plus grands. Ce n'est pas une garantie : c'est de l'arithmétique sur ces vingt journées.</div>`); }
       });
     });
     const sh = $("#startHunt"); if (sh) sh.addEventListener("click", () => { let once = false; window.WIDGETS.candles($("#huntBox"), { mode: "hunt" }, info => { if (once) return; once = true; state.games.huntBest = Math.max(state.games.huntBest || 0, info.score || 0); state.games.hunt = (state.games.hunt || 0) + 1; save(); if (state.games.hunt <= 5) addXP(10, "hunt_" + state.games.hunt, "Chasse faite."); }, ctx); });
@@ -313,19 +321,15 @@
     { text: "Avant de mettre un franc, lis les frais de la bourse et calcule ce que tu perds si le prix baisse de dix pour cent.", scam: false, why: "On parle des coûts et de la perte avant du gain. C'est le réflexe du cours." },
     { text: "Envoie ton inscription ce soir : demain le prix triple et le groupe ferme à minuit.", scam: true, why: "Urgence fabriquée. Un vrai apprentissage attend demain sans problème." },
     { text: "Un graphique en 1 jour montre la direction ; on ne décide rien sur une seule bougie de 15 minutes.", scam: false, why: "C'est la leçon de l'unité de temps. Aucune promesse, aucun argent demandé." },
-    { text: "Je suis trader agréé par la banque centrale, ton dépôt est assuré et aucune perte n'est possible, c'est garanti.", scam: true, why: "« Garanti » : carton rouge. Aucune licence de ce genre n'existe, et aucune perte impossible n'existe." },
+    { text: "Je suis trader agréé par la banque centrale, ton dépôt est assuré et aucune perte n'est possible, c'est garanti.", scam: true, why: "Signe 1 (il promet « garanti ») : on dit non. Aucune licence de ce genre n'existe, et aucune perte impossible n'existe." },
     { text: "Si tu ne comprends pas comment un placement gagne de l'argent, ne mets rien dedans.", scam: false, why: "Une règle de prudence, rien d'autre. Elle protège ton argent." },
     { text: "Prête-moi l'accès à ton compte, je trade pour toi, on partage les gains moitié-moitié.", scam: true, why: "Gestion de compte par un inconnu : il peut tout retirer, et les pertes seront pour toi." },
     { text: "Le prix a baissé de quarante pour cent cette année ; voilà pourquoi je garde mon argent réel pour plus tard.", scam: false, why: "On regarde la baisse en face et on attend. C'est la patience du Club." },
     { text: "Mon robot de trading est gratuit : il te suffit d'activer le levier ×200 et de déposer sur ma plateforme.", scam: true, why: "Levier énorme et plateforme inconnue : le robot gratuit sert à prendre ton dépôt." },
     { text: "Tu peux lire le carnet d'ordres sur le site d'une bourse sans ouvrir de compte ni déposer un franc.", scam: false, why: "Vrai, tu l'as fait dans l'épisode 1. Rien à payer, rien à donner." }
   ];
-  function judgeChart(cs) {
-    const last5 = cs.slice(-5); const chg5 = last5[4].c / last5[0].o - 1; const who = chg5 > 0.01 ? "acheteurs" : chg5 < -0.01 ? "vendeurs" : "partagé";
-    const a = cs.slice(0, 15), b = cs.slice(15); const hiA = Math.max(...a.map(c => c.h)), loA = Math.min(...a.map(c => c.l)), hiB = Math.max(...b.map(c => c.h)), loB = Math.min(...b.map(c => c.l));
-    const sens = hiB > hiA && loB > loA ? "hausse" : hiB < hiA && loB < loA ? "baisse" : "range";
-    return { who, sens, chg5, hiA, loA, hiB, loB };
-  }
+  /* Les deux règles sont classées par le même code que les widgets (widgets.js : judge5 = « partagé » d'abord, puis le signe ; judge30 = max contre max, puis min contre min). */
+  function judgeChart(cs) { const J5 = window.WIDGETS.judge5(cs), J30 = window.WIDGETS.judge30(cs); return { who: J5.who, sens: J30.sens, J5, J30 }; }
   async function porte1() {
     if (!EP_ORDER.every(isDone)) { h(`<h1>Porte 1</h1>${lockCard("Pas encore", "La Porte 1 s'ouvre après l'épisode 8.")}<button class="btn" data-go="home">Accueil</button>`); return; }
     const G = state.gate1; const m14 = meteo14();
@@ -335,7 +339,7 @@
     focus(true);
     G.lastTry = today(); G.a = null; G.b = null; G.ansA = {}; save();
     h(`<h1>Porte 1 : l'examen</h1><p class="muted">Deux parties, sans aide. Un essai par jour : il a commencé.</p>
-      <div class="card"><h3>Partie A · trois graphiques</h3><p class="mini">Règle 1 : les 5 dernières bougies. Si la dernière ferme au-dessus de l'ouverture de la première des cinq, les acheteurs ont gagné. En dessous, les vendeurs. Presque égal (moins de 1 %) : partagé.</p><p class="mini">Règle 2 : le sens des 30 jours, comme dans ta météo (épisode 2). Compare les 15 bougies récentes aux 15 anciennes : plus hauts ET plus bas au-dessus = hausse ; en dessous = baisse ; sinon range.</p><div id="pA"><p class="muted">Chargement…</p></div></div>
+      <div class="card"><h3>Partie A · trois graphiques</h3><p class="mini">Trois prix différents : BTC, ETH et BNB, trois cryptomonnaies. Même règle pour les trois.</p><p class="mini">Règle 1, les 5 dernières bougies (épisode 4) : ${esc(window.WIDGETS.RULE5)}</p><p class="mini">Règle 2, la météo des 30 jours (épisode 2) : ${esc(window.WIDGETS.RULE30)} ${esc(window.WIDGETS.METEO_NOTE)}</p><div id="pA"><p class="muted">Chargement…</p></div></div>
       <div class="card"><h3>Partie B · dix messages nouveaux</h3><div id="pB"><button class="btn" id="startB">Commencer la partie B</button></div></div>
       <div class="card"><h3>Verdict</h3><p id="verdict" class="muted">Finis A et B pour voir le verdict.</p></div>`);
     const syms = ["BTCUSDT", "ETHUSDT", "BNBUSDT"]; let resB = null, gErr = false;
@@ -343,9 +347,9 @@
     const pA = $("#pA"); pA.innerHTML = "";
     for (const sym of syms) {
       const d = await window.DATA.klines(sym, "1d", 30); const cs = d.candles; const J = judgeChart(cs);
-      const box = document.createElement("div"); box.className = "examchart"; box.innerHTML = `<p><b>${esc(sym.replace("USDT", "/USDT"))}</b>${d.demo ? " (exemple, pas de connexion)" : ""}</p><canvas class="chart"></canvas><p class="mini">Les 5 dernières bougies : qui a gagné ?</p><div class="choice">${["acheteurs", "vendeurs", "partagé"].map(v => `<button data-q="who" data-v="${v}">${v}</button>`).join("")}</div><p class="mini">Sur 30 jours, le marché est en :</p><div class="choice">${["hausse", "baisse", "range"].map(v => `<button data-q="sens" data-v="${v}">${v}</button>`).join("")}</div><div class="reveal hidden"></div>`;
+      const box = document.createElement("div"); box.className = "examchart"; box.innerHTML = `<p><b>${esc(sym.replace("USDT", "/USDT"))}</b>${d.demo ? " (exemple, pas de connexion)" : ""}</p><canvas class="chart"></canvas><p class="mini">Les 5 dernières bougies : qui a gagné ?</p><div class="choice">${["acheteurs", "vendeurs", "partagé"].map(v => `<button data-q="who" data-v="${v}">${v}</button>`).join("")}</div><p class="mini">Sur 30 jours, d'après la règle, le marché a été en :</p><div class="choice">${["hausse", "baisse", "range"].map(v => `<button data-q="sens" data-v="${v}">${v}</button>`).join("")}</div><div class="reveal hidden"></div>`;
       pA.appendChild(box); const cv = box.querySelector("canvas"); window.WIDGETS.drawCandles(cv, cs); const ans = {};
-      box.querySelectorAll("[data-q]").forEach(b => b.addEventListener("click", () => { if (ans.done) return; ans[b.dataset.q] = b.dataset.v; box.querySelectorAll(`[data-q="${b.dataset.q}"]`).forEach(x => x.classList.toggle("sel", x === b)); if (ans.who && ans.sens) { ans.done = true; const okk = ans.who === J.who && ans.sens === J.sens; G.ansA[sym] = okk; save(); box.querySelector(".reveal").classList.remove("hidden"); box.querySelector(".reveal").innerHTML = `${okk ? "<b>Juste.</b>" : "<b>Pas tout à fait.</b>"} Les 5 dernières bougies : ${(100 * J.chg5).toFixed(1).replace(".", ",")} % entre l'ouverture de la première et la clôture de la dernière, donc « ${J.who} ». Sur 30 jours : deuxième moitié plus haut ${J.hiB > J.hiA ? "plus haut" : "plus bas"}, plus bas ${J.loB > J.loA ? "plus haut" : "plus bas"}, donc « ${J.sens} ».`; verdict(); } }));
+      box.querySelectorAll("[data-q]").forEach(b => b.addEventListener("click", () => { if (ans.done) return; ans[b.dataset.q] = b.dataset.v; box.querySelectorAll(`[data-q="${b.dataset.q}"]`).forEach(x => x.classList.toggle("sel", x === b)); if (ans.who && ans.sens) { ans.done = true; const okk = ans.who === J.who && ans.sens === J.sens; G.ansA[sym] = okk; save(); box.querySelector(".reveal").classList.remove("hidden"); box.querySelector(".reveal").innerHTML = `${okk ? "<b>Juste.</b>" : "<b>Pas tout à fait.</b>"} <b>Les 5 dernières bougies.</b> ${esc(window.WIDGETS.explain5(J.J5))}${ans.who !== J.who ? ` Toi, tu as vu « ${esc(ans.who)} ».` : ""} <b>Les 30 jours.</b> ${esc(window.WIDGETS.explain30(J.J30))} D'après la règle : ${esc(J.sens)}. ${esc(window.WIDGETS.hint30(J.J30, ans.sens))}`; verdict(); } }));
     }
     function verdict() {
       if (Object.keys(G.ansA).length < 3 || resB == null) return;
