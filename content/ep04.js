@@ -1,4 +1,5 @@
 // Épisode 4 — La bougie : une journée en un dessin. Français très simple. Zéro emoji.
+// Chiffres d'Awa (REDACTION §5) : ouverture 500, plus haut 550, plus bas 440, clôture 520. Règle Porte 1 sur 5 bougies (comité 07/11, D1) : exemple 500 → 520.
 window.EPISODES = window.EPISODES || {};
 window.EPISODES.ep04 = {
   id: "ep04",
@@ -21,7 +22,7 @@ window.EPISODES.ep04 = {
       goals: [
         "lire les quatre prix d'une journée et dessiner la bougie",
         "dire ce que racontent le corps et les mèches",
-        "dire qui a gagné sur plusieurs bougies"
+        "dire qui a gagné sur 5 bougies, avec la règle de l'examen"
       ],
       words: ["bougie", "ouverture", "cloture", "corps", "meche", "refuse"]
     },
@@ -32,97 +33,94 @@ window.EPISODES.ep04 = {
       alt: "Awa derrière son étal d'attiéké, son cahier ouvert sur une ligne à quatre prix : 500, 550, 440, 520",
       text: [
         "6 h. Awa ouvre son étal. Première boule vendue à la couturière : 500 francs.",
-        "8 h. Trois chauffeurs pressés : « Je prends à ton prix. » Awa monte à 520, 540, puis 550. Ensuite, personne ne veut plus payer 550 : Awa doit redescendre à 520.",
-        "12 h. La pluie vide le marché. Awa cède trois boules à 440, pour ne pas rentrer avec. Puis les lycéens arrivent. Awa ne veut plus vendre si bas : ils acceptent 480, puis 500.",
-        "18 h. Dernière boule, 520 francs. Awa ferme.",
-        "Dans son cahier, Awa garde une ligne par jour, avec quatre prix. Première boule 500, la plus chère 550, la moins chère 440, dernière boule 520."
+        "8 h. Trois chauffeurs pressés : « Je prends à ton prix. » Awa monte à 520, 540, puis 550. Puis personne ne veut plus payer 550 : elle redescend à 520.",
+        "12 h. La pluie vide le marché. Awa cède trois boules à 440. Puis les lycéens arrivent : ils acceptent 480, puis 500.",
+        "18 h. Dernière boule : 520 francs. Awa ferme.",
+        "Dans son cahier, quatre prix pour la journée : première boule 500, la plus chère 550, la moins chère 440, dernière boule 520."
       ]
     },
     {
       type: "idea",
-      title: "Ce que ça veut dire : la bougie",
+      title: "Ce que ça veut dire : la bougie et ses quatre prix",
       points: [
         ["La bougie", "un bâton qui résume une journée avec quatre prix. En anglais : candlestick (dis « candeul-stique »)."],
-        ["Les quatre prix", "l'ouverture, le premier (500) ; le plus haut (550) ; le plus bas (440) ; la clôture, le dernier (520). Clôture veut dire fermeture."],
-        ["Le corps", "un rectangle épais entre ouverture et clôture : 500 à 520. Vert si la clôture est au-dessus (a fini plus haut), rouge si en dessous."],
-        ["Les mèches", "deux traits fins, du corps au plus haut (550) et au plus bas (440). En anglais : wick (dis « ouique »)."]
+        ["L'ouverture", "le premier prix de la journée : 500."],
+        ["Le plus haut", "le prix le plus cher de la journée : 550."],
+        ["Le plus bas", "le prix le moins cher : 440."],
+        ["La clôture", "le dernier prix : 520. Clôture veut dire fermeture."]
       ],
-      after: "Une mèche : un prix qui a existé un moment, puis a été refusé."
+      after: "La ligne du cahier d'Awa, c'est exactement une bougie. L'écran suivant montre comment on la dessine."
     },
     {
       type: "map",
       title: "Chez Awa, sur le Bitcoin : la même chose",
       rows: [
         ["Le cahier d'Awa, une ligne par jour : 1er prix, plus haut, plus bas, dernier prix", "La bougie (ouverture, plus haut, plus bas, clôture)"],
-        ["La boule d'attiéké", "Le Bitcoin (une monnaie qui existe seulement sur Internet)"],
-        ["Le franc CFA pour payer", "L'USDT (une monnaie d'Internet qui vaut à peu près 1 dollar, environ 600 F)"],
-        ["Le prix le plus cher du jour chez Awa", "Le plus haut de la bougie"],
-        ["Le prix le moins cher du jour chez Awa", "Le plus bas de la bougie"]
+        ["Le prix le plus cher du jour chez Awa : 550", "Le plus haut de la bougie"],
+        ["Le prix le moins cher du jour chez Awa : 440", "Le plus bas de la bougie"]
       ],
-      after: "La ligne du cahier d'Awa et la bougie du Bitcoin, c'est exactement la même chose. Quatre prix pour une journée : chez Awa en francs, sur le Bitcoin en USDT."
+      after: "La ligne du cahier d'Awa et la bougie du Bitcoin, c'est la même chose. Quatre prix pour une journée : chez Awa en francs, sur le Bitcoin en USDT."
     },
     {
       type: "widget",
       widget: "candle",
-      title: "Regarde : la journée d'Awa en une bougie",
-      intro: "Voici la journée d'Awa dessinée en une bougie. Touche chaque partie : ouverture, plus haut, plus bas, clôture, corps, mèche. Puis touche le bouton « journée rouge » : mêmes plus haut et plus bas, mais la clôture passe sous l'ouverture.",
+      title: "Regarde : le corps et les mèches",
+      intro: "La journée d'Awa en une bougie. Le corps : le rectangle épais entre l'ouverture (500) et la clôture (520), vert car la journée a fini plus haut. Les mèches : deux traits fins jusqu'au plus haut (550) et au plus bas (440). En anglais : wick (dis « ouique »). Touche chaque partie, puis « journée rouge ».",
       params: { day: { o: 500, h: 550, l: 440, c: 520 }, unit: "francs" },
-      after: "Le corps vert va de 500 à 520 : la journée a fini plus haut. La mèche du haut monte à 550 : les chauffeurs pressés ont payé. Puis personne n'a plus voulu payer 550 : Awa a dû redescendre. Le haut a été refusé. La mèche du bas descend à 440 : la pluie, puis personne n'a plus voulu vendre si bas. Les lycéens ont payé 480, puis 500 : le bas a été refusé."
+      after: "Journée rouge : la clôture passe sous l'ouverture. Vert : les acheteurs ont gagné la journée ; rouge : les vendeurs. Une mèche est un prix qui a existé un moment, puis a été refusé : personne n'a plus voulu payer 550, ni vendre à 440."
     },
     {
       type: "check",
       q: "Sur la bougie d'Awa, le trait fin qui monte jusqu'à 550, qu'est-ce que c'est ?",
       choices: [
         "Le corps : la journée a fini à 550",
-        "La mèche du haut : le prix est allé à 550, puis a été refusé",
+        "La mèche du haut : 550 a été refusé",
         "L'ouverture : la journée a commencé à 550"
       ],
       answer: 1,
-      ok: "Bravo : un trait fin est une mèche. Le prix est allé à 550, puis personne n'a plus voulu payer 550.",
+      ok: "Oui. Un trait fin est une mèche. Le prix est allé à 550, puis personne n'a plus voulu payer 550.",
       ko: "Pas encore : le trait fin n'est pas le rectangle. Relis ce que l'app a dit quand tu as touché « Mèche »."
     },
     {
       type: "idea",
-      title: "Qui a gagné ? Sur une bougie, puis sur plusieurs",
+      title: "Qui a gagné sur 5 bougies ?",
       points: [
-        ["Sur une bougie", "vert : les acheteurs ont gagné la journée. Rouge : les vendeurs."],
-        ["Sur plusieurs bougies, par exemple les 5 dernières", "compare la clôture de la dernière à l'ouverture de la première. Au-dessus : les acheteurs ont gagné. En dessous : les vendeurs ont gagné. Presque égal (moins de 1 %, moins de 5 francs sur 500) : partagé."],
-        ["La semaine d'Awa", "ouverture puis clôture : lundi 480, 500 ; mardi 500, 490 ; mercredi 490, 500 ; jeudi 500, 520 ; vendredi 520, 510."],
-        ["Le calcul", "510 (clôture de vendredi) est au-dessus de 480 (ouverture de lundi) : les acheteurs ont gagné la semaine, même si vendredi est rouge."]
+        ["La règle", "Prends l'ouverture de la première des 5 et la clôture de la dernière. D'abord : si la différence fait moins de 1 sur 100 de l'ouverture (moins de 5 F sur 500 F), c'est partagé. Sinon : clôture au-dessus, les acheteurs ont gagné ; en dessous, les vendeurs."],
+        ["Chez Awa, pas à pas", "Lundi, ouverture 500. 1 sur 100 de 500 : 500 ÷ 100 = 5 F. Vendredi, clôture 520. 520 − 500 = 20 F. 20 est plus que 5 : pas partagé. 520 est au-dessus de 500 : les acheteurs ont gagné la semaine."]
       ],
-      after: "C'est la règle de la Porte 1."
+      after: "Retiens-la : elle te servira à l'examen de fin de saison, la Porte 1."
     },
     {
       type: "check",
-      q: "Semaine d'Awa : lundi, première boule à 480. Vendredi, dernière boule à 510. Qui a gagné la semaine ?",
+      q: "Les 5 jours d'Awa : lundi, première boule à 500. Vendredi, dernière boule à 520. Qui a gagné la semaine ?",
       choices: [
-        "Les acheteurs : 510 est au-dessus de 480",
+        "Les acheteurs : 520 est au-dessus de 500",
         "Les vendeurs : vendredi est une journée rouge",
-        "Partagé : il y a eu des jours verts et des jours rouges"
+        "Partagé : 20 francs, c'est presque égal"
       ],
       answer: 0,
-      ok: "Bravo : on compare seulement la dernière clôture à la première ouverture. 510 est au-dessus de 480.",
-      ko: "Pas encore : oublie les jours un par un. Compare la clôture de vendredi à l'ouverture de lundi."
+      ok: "Oui. 1 sur 100 de 500, c'est 5 F ; 20 F, c'est plus : pas partagé. 520 est au-dessus de 500 : acheteurs.",
+      ko: "Pas encore : oublie les jours un par un. Calcule d'abord 1 sur 100 de 500, puis compare 520 à 500."
     },
     {
       type: "widget",
       widget: "candles",
       title: "Joue : la Chasse aux mèches",
-      intro: "Trente vraies bougies du Bitcoin, une par jour, en USDT. Touche les cinq bougies aux mèches les plus longues. Pour chacune, dis quel côté a été refusé. Règle : regarde la mèche la plus longue. En haut : le haut a été refusé, personne n'a voulu payer plus. En bas : le bas a été refusé, personne n'a voulu vendre moins.",
+      intro: "Trente vraies bougies du Bitcoin, une par jour, en USDT. Touche les cinq bougies aux mèches les plus longues. Mèche la plus longue en haut : le haut a été refusé, personne n'a voulu payer plus. En bas : le bas a été refusé, personne n'a voulu vendre moins.",
       params: { mode: "hunt" },
-      after: "Score sur 5. À 5 sur 5 : badge Œil de mèche. Tu peux rejouer dans Jeux."
+      after: "Score sur 5. À 5 sur 5 : badge Œil de mèche. Tu pourras rejouer dans Jeux, le menu des jeux de l'app. Pas de connexion ? L'app montre des bougies d'exemple : joue dessus."
     },
     {
       type: "mission",
       intro: "5 minutes, dans l'app. Pas de compte, pas d'argent.",
       steps: [
-        "Touche « Précédent » pour revoir les trente bougies de la Chasse. La bougie la plus à droite, c'est aujourd'hui.",
+        "Touche « Revoir le jeu », sous cette mission : les trente bougies. La plus à droite, c'est aujourd'hui, pas finie : la journée va de minuit à minuit, heure d'Abidjan.",
         "Sa couleur : vert (a fini plus haut) ou rouge (a fini plus bas) ?",
         "Sa mèche la plus longue : en haut ou en bas ? Donc quel côté a été refusé ?",
-        "Écris une ligne : la date, la couleur, le côté refusé, le dernier prix affiché sous le dessin.",
-        "Bonus : sur une bourse crypto, par exemple binance.com, sans compte, touche la dernière bougie BTC/USDT. Note ses quatre prix. Puis compare sa clôture à l'ouverture de la cinquième avant elle : qui a gagné ?"
+        "Écris une ligne : date, couleur, côté refusé, dernier prix affiché sous le dessin.",
+        "Facultatif : sur une bourse crypto, par exemple binance.com, sans compte, note les quatre prix de la dernière bougie BTC/USDT."
       ],
-      note: { label: "Ta ligne de journal", placeholder: "ex. : 08/11 · verte · mèche la plus longue en bas · dernier prix 100 000 USDT" },
+      note: { label: "Ta ligne du jour", placeholder: "ex. : 08/11 · verte · mèche la plus longue en bas, le bas refusé · dernier prix 100 000 USDT" },
       fallback: "Si les vraies bougies ne chargent pas, l'app montre des bougies d'exemple. Fais les étapes dessus. La mission compte."
     },
     {
@@ -145,10 +143,10 @@ window.EPISODES.ep04 = {
     {
       type: "card",
       items: [
-        ["C'est quoi", "Un bâton qui résume une journée avec quatre prix : ouverture, plus haut, plus bas, clôture. Corps entre ouverture et clôture, mèches jusqu'au plus haut et au plus bas."],
-        ["Connecté à", "le prix qui bouge (épisode 2), le carnet d'ordres (épisode 3), l'unité de temps (épisode 5), la Porte 1 (qui a gagné sur 5 bougies)."],
+        ["C'est quoi", "Un bâton qui résume une journée : ouverture, plus haut, plus bas, clôture. Corps entre ouverture et clôture, mèches jusqu'au plus haut et au plus bas."],
+        ["Connecté à", "le prix qui bouge (épisode 2), le carnet d'ordres (épisode 3), l'unité de temps (épisode 5), la Porte 1."],
         ["Exemple", "Awa : 500, 550, 440, 520. Corps vert de 500 à 520. Mèches jusqu'à 550 et 440."],
-        ["Vrai même si on ne le dit pas", "La couleur dit si la journée a fini plus haut ou plus bas, pas combien. Une longue mèche est un prix refusé. Sur plusieurs bougies, seules comptent la première ouverture et la dernière clôture."],
+        ["Vrai même si on ne le dit pas", "La couleur dit si la journée a fini plus haut ou plus bas, pas de combien. Une mèche est un prix refusé."],
         ["Piège classique", "Apprendre par cœur des dessins aux noms compliqués, au lieu de lire les quatre prix."]
       ]
     },
